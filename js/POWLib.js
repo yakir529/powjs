@@ -28,6 +28,46 @@ if (!String.prototype.ToBoolean) {
     };
 }
 
+if (typeof Object.assign != 'function') {
+    Object.defineProperty(Object, "assign", {
+        value: function assign(i_target, varArgs) {
+            'use strict';
+            if (i_target == null) {
+                throw new TypeError('Cannot convert undefined or null to object');
+            }
+
+            var _dest = Object(i_target);
+
+            for (var i = 1; i < arguments.length; i++) {
+                var _nextSource = arguments[i];
+
+                if (_nextSource != null) {
+                    for (var nextKey in _nextSource) {
+                        if (Object.prototype.hasOwnProperty.call(_nextSource, nextKey)) {
+                            _dest[nextKey] = _nextSource[nextKey];
+                        }
+                    }
+                }
+            }
+            return _dest;
+        },
+        writable: true,
+        configurable: true
+    });
+}
+
+if (!Object.getOwnPropertyDescriptors) {
+    Object.getOwnPropertyDescriptors = function getOwnPropertyDescriptors(obj) {
+        var descriptors = {};
+        for (var prop in obj) {
+            if (obj.hasOwnProperty(prop)) {
+                descriptors[prop] = Object.getOwnPropertyDescriptor(obj, prop);
+            }
+        }
+        return descriptors;
+    };
+}
+
 //----------------------------------------------------------------/ FACTORIES /----------------------------------------------------------------//
 $pow.Injector = (function(){
     var m_instance,
@@ -222,18 +262,18 @@ $pow.ControllersFactory = (function(){
             function Controller(i_definitions){
                 this.Methods = i_definitions.Methods;
                 this.Identifier = i_definitions.Identifier;
-                this.Using = bindComponents(i_definitions.Using);
+                this.UsingService = bindServices(i_definitions.UsingService);
             }
 
-            function bindComponents(i_using){
+            function bindServices(i_using){
                 //todo: attach each component as an internal object like -> Controller.http.post
                 var o_using = {}
                 if (i_using) {
-                    var v_componentInstance = {};
+                    var v_serviceInstance = {};
                     for (const key in i_using) {
-                        v_componentInstance = $pow.ComponentsFactory.Create(i_using[key]);
-                        if (!v_componentInstance) console.warn("bad component: " + i_using[key]);
-                        else o_using[i_using[key]] = v_componentInstance;
+                        v_serviceInstance = $pow.Store.Get(i_using[key]);
+                        if (!v_serviceInstance) console.warn("bad service: " + i_using[key]);
+                        else o_using[i_using[key]] = v_serviceInstance;
                     } 
                 } 
                 return o_using;
@@ -310,16 +350,28 @@ $pow.ViewsFactory = (function(){
             }
         
             function bindActions(i_controller, i_actionsList){
-                var _listenters = Object.getOwnPropertyNames(i_actionsList);
+                function getCurrObjHelper(i_key){
+                    return i_actionsList[_listentersArr[key]];
+                }
+
+                var _listentersArr = Object.getOwnPropertyNames(i_actionsList),
+                    _usingServicesArr = Object.getOwnPropertyNames(i_controller.UsingService),
+                    _services = {};
+                
                 i_actionsList.Controller = i_controller;
-        
-                for (const key in _listenters) {
+                
+                for (var key = 0; key < _usingServicesArr.length; key++) {
+                    _services[_usingServicesArr[key]] = i_controller.UsingService[_usingServicesArr[key]].Methods;
+                }
+
+                for (var key = 0; key < _listentersArr.length; key++) {
+                    var v_currObj = getCurrObjHelper(key);
                     if (document.addEventListener) {
-                        i_actionsList[_listenters[key]]["AttachTo"].addEventListener(i_actionsList[_listenters[key]]["Event"], function( e ){ 
-                            if (e.target === document.querySelector(i_actionsList[_listenters[key]]["Selector"])) { 
-                                i_actionsList.Controller.Methods[i_actionsList[_listenters[key]]["Delegate"]].apply(e.target, [e, i_actionsList.Controller.Using, i_actionsList[_listenters[key]]["Invoke"]]);
+                        v_currObj["AttachTo"].addEventListener(v_currObj["Event"], function( e ){ 
+                            if (e.target === document.querySelector(v_currObj["Selector"])) { 
+                                i_actionsList.Controller.Methods[v_currObj["Delegate"]].apply(e.target, [e, _services, v_currObj["Invoke"]]);
                             }
-                        }, i_actionsList[_listenters[key]]["Bubble"] || false);
+                        }, v_currObj["Bubble"] || false);
                     } 
                     // else {
                     //     document.attachEvent( 'on' + type, function( event ){ 
@@ -340,6 +392,66 @@ $pow.ViewsFactory = (function(){
 
     function createInstance(){
         if (!m_instance) m_instance = new ViewsFactoryInstance();
+        return m_instance;
+    }
+
+    return createInstance();
+})();
+
+$pow.ServicesFactory = (function(){
+    var m_instance,
+        ServicesFactoryInstance = (function(createService){
+            function ServicesFactoryInstance(){}
+
+            ServicesFactoryInstance.prototype.Create = function(i_definitions){
+                if (isValidDefinitions(i_definitions)){
+                    var _service = createService(i_definitions);
+                    $pow.Store.Add(i_definitions.Identifier, _service);
+                    return _service;
+                }
+            }
+
+            function isValidDefinitions(i_definitions){
+                return (typeof i_definitions !== "undefined" 
+                        && i_definitions 
+                        && typeof i_definitions.Methods !== "undefined"
+                        && typeof i_definitions.Identifier === "string")? 
+                            true : false;
+            }
+
+            return ServicesFactoryInstance;
+        })(createService),
+        Service = (function(){
+            function Service(i_definitions){
+                this.Methods = {};
+                this.Identifier = i_definitions.Identifier;
+                this.UsingComponent = bindComponents(i_definitions.UsingComponent);
+                Object.assign(this.Methods, i_definitions.Methods, {"UsingComponent": this.UsingComponent});
+            }
+
+            function bindComponents(i_using){
+                //todo: attach each component as an internal object like -> Controller.http.post
+                var o_using = {}
+                if (i_using) {
+                    var v_componentInstance = {};
+                    for (const key in i_using) {
+                        v_componentInstance = $pow.ComponentsFactory.Create(i_using[key]);
+                        if (!v_componentInstance) console.warn("bad component: " + i_using[key]);
+                        else o_using[i_using[key]] = v_componentInstance;
+                    } 
+                } 
+                return o_using;
+            }
+
+            return Service;
+        })();
+    
+    function createService(i_definitions){
+        return new Service(i_definitions);    
+    }
+
+    function createInstance(){
+        if (!m_instance) m_instance = new ServicesFactoryInstance();
         return m_instance;
     }
 

@@ -2,52 +2,52 @@
 var $pow = $pow || {};
 
 //----------------------------------------------------------------/ FACTORIES /----------------------------------------------------------------//
-$pow.Store = (function(){
+$pow.Store = (function () {
     var m_instance,
-        StoreHandler = (function(){
+        StoreHandler = (function () {
             var m_storage = {};
-            function StoreHandler(){
+            function StoreHandler() {
                 this.Components = getComponents();
             }
 
-            StoreHandler.prototype.Add = function(i_slug, i_data){
+            StoreHandler.prototype.Add = function (i_slug, i_data) {
                 m_storage[i_slug] = i_data;
             }
 
-            StoreHandler.prototype.Get = function(i_slug){
+            StoreHandler.prototype.Get = function (i_slug) {
                 return m_storage[i_slug];
             }
 
-            StoreHandler.prototype.IsExists = function(i_slug){
-                return m_storage[i_slug] || this.Components.IsExists(i_slug)? true : false;
+            StoreHandler.prototype.IsExists = function (i_slug) {
+                return m_storage[i_slug] || this.Components.IsExists(i_slug) ? true : false;
             }
 
-            function getComponents(){
-                return (function(){
+            function getComponents() {
+                return (function () {
                     var m_componentsInstance,
-                        ComponentsHandler = (function(){
+                        ComponentsHandler = (function () {
                             var m_componentsList = {};
 
-                            function ComponentsHandler(){
+                            function ComponentsHandler() {
                                 m_componentsList = $pow.Components;
                             }
 
-                            ComponentsHandler.prototype.GetInstanceOf = function(i_componentName){
+                            ComponentsHandler.prototype.GetInstanceOf = function (i_componentName) {
                                 return m_componentsList[i_componentName].GetInstance();
                             }
 
-                            ComponentsHandler.prototype.IsExists = function(i_componentName){
-                                return m_componentsList[i_componentName]? true : false;
+                            ComponentsHandler.prototype.IsExists = function (i_componentName) {
+                                return m_componentsList[i_componentName] ? true : false;
                             }
 
                             return ComponentsHandler;
                         })();
-                    
-                    function createInstance(){
+
+                    function createInstance() {
                         if (!m_componentsInstance) m_componentsInstance = new ComponentsHandler();
-                        return m_componentsInstance;    
+                        return m_componentsInstance;
                     }
-                
+
                     return createInstance();
                 })();
             }
@@ -55,41 +55,41 @@ $pow.Store = (function(){
             return StoreHandler;
         })();
 
-    function createInstance(){
+    function createInstance() {
         if (!m_instance) m_instance = new StoreHandler();
-        return m_instance;    
+        return m_instance;
     }
 
     return createInstance();
 })();
 
-$pow.ComponentsFactory = (function(){
+$pow.ComponentsFactory = (function () {
     var m_instance,
-        ComponentsFactoryInstance = (function(){
-            function ComponentsFactoryInstance(){}
+        ComponentsFactoryInstance = (function () {
+            function ComponentsFactoryInstance() { }
 
-            ComponentsFactoryInstance.prototype.Create = function(i_componentName){
-                if (isValidComponent(i_componentName)){
+            ComponentsFactoryInstance.prototype.Create = function (i_componentName) {
+                if (isValidComponent(i_componentName)) {
                     return $pow.Store.Components.GetInstanceOf(i_componentName);
                 }
             }
 
-            function isValidComponent(i_componentName){
-                return (typeof i_componentName !== "undefined" 
-                        && i_componentName 
-                        && i_componentName.length
-                        && isComponentExists(i_componentName))? 
-                            true : false;
+            function isValidComponent(i_componentName) {
+                return (typeof i_componentName !== "undefined"
+                    && i_componentName
+                    && i_componentName.length
+                    && isComponentExists(i_componentName)) ?
+                    true : false;
             }
 
-            function isComponentExists(i_componentName){
+            function isComponentExists(i_componentName) {
                 return $pow.Store.IsExists(i_componentName);
             }
 
             return ComponentsFactoryInstance;
         })();
-        
-    function createInstance(){
+
+    function createInstance() {
         if (!m_instance) m_instance = new ComponentsFactoryInstance();
         return m_instance;
     }
@@ -97,36 +97,36 @@ $pow.ComponentsFactory = (function(){
     return createInstance();
 })();
 
-$pow.ControllersFactory = (function(){
+$pow.ControllersFactory = (function () {
     var m_instance,
-        ControllersFactoryInstance = (function(createController){
-            function ControllersFactoryInstance(){}
+        ControllersFactoryInstance = (function (createController) {
+            function ControllersFactoryInstance() { }
 
-            ControllersFactoryInstance.prototype.Create = function(i_definitions){
-                if (isValidDefinitions(i_definitions)){
+            ControllersFactoryInstance.prototype.Create = function (i_definitions) {
+                if (isValidDefinitions(i_definitions)) {
                     var _controller = createController(i_definitions);
                     $pow.Store.Add(i_definitions.Identifier, _controller);
                 }
             }
 
-            function isValidDefinitions(i_definitions){
-                return (typeof i_definitions !== "undefined" 
-                        && i_definitions 
-                        && typeof i_definitions.Methods !== "undefined"
-                        && typeof i_definitions.Identifier === "string")? 
-                            true : false;
+            function isValidDefinitions(i_definitions) {
+                return (typeof i_definitions !== "undefined"
+                    && i_definitions
+                    && typeof i_definitions.Methods !== "undefined"
+                    && typeof i_definitions.Identifier === "string") ?
+                    true : false;
             }
 
             return ControllersFactoryInstance;
         })(createController),
-        Controller = (function(){
-            function Controller(i_definitions){
+        Controller = (function () {
+            function Controller(i_definitions) {
                 this.Methods = i_definitions.Methods;
                 this.Identifier = i_definitions.Identifier;
                 this.UsingService = bindServices(i_definitions.UsingService);
             }
 
-            function bindServices(i_using){
+            function bindServices(i_using) {
                 //todo: attach each component as an internal object like -> Controller.http.post
                 var o_using = {}
                 if (i_using) {
@@ -135,19 +135,19 @@ $pow.ControllersFactory = (function(){
                         v_serviceInstance = $pow.Store.Get(i_using[key]);
                         if (!v_serviceInstance) console.warn("bad service: " + i_using[key]);
                         else o_using[i_using[key]] = v_serviceInstance;
-                    } 
-                } 
+                    }
+                }
                 return o_using;
             }
-            
+
             return Controller;
         })();
-    
-    function createController(i_definitions){
-        return new Controller(i_definitions);    
+
+    function createController(i_definitions) {
+        return new Controller(i_definitions);
     }
 
-    function createInstance(){
+    function createInstance() {
         if (!m_instance) m_instance = new ControllersFactoryInstance();
         return m_instance;
     }
@@ -155,142 +155,128 @@ $pow.ControllersFactory = (function(){
     return createInstance();
 })();
 
-$pow.ViewsFactory = (function(){
+$pow.View = (function () {
     var m_instance,
-        ViewsFactoryInstance = (function(createView){
-            function ViewsFactoryInstance(){}
+        ViewHandler = (function () {
+            var EventConsumer = (function () {
+                var m_eventName,m_selector,m_elementToAttach,m_invokeIMPL,m_delegate,m_bubble,m_identifier;
 
-            ViewsFactoryInstance.prototype.Create = function(i_definitions){
-                if (isValidDefinitions(i_definitions)){
-                    var _view = createView(i_definitions);
-                    $pow.Store.Add(i_definitions.Identifier, _view);
-                    return _view;
+                function EventConsumer(i_definitions) { 
+                    m_eventName = i_definitions.Event? i_definitions.Event : null;
+                    m_selector = i_definitions.Selector? i_definitions.Selector : null;
+                    m_elementToAttach = i_definitions.AttachTo? i_definitions.AttachTo : document;
+                    m_invokeIMPL = i_definitions.Invoke? i_definitions.Invoke : null;
+                    m_delegate = i_definitions.Delegate? i_definitions.Delegate : null;
+                    m_bubble = i_definitions.Bubble? i_definitions.Bubble : false;
+                    m_identifier = i_definitions.Identifier? i_definitions.Identifier : "";
                 }
-            }
 
-            function isValidDefinitions(i_definitions){
-                var o_response = true;
-                if (typeof i_definitions != "undefined" && i_definitions && i_definitions.Controller && i_definitions.Actions){
-                    var _listenters = Object.getOwnPropertyNames(i_definitions.Actions);
-                    for (var key in _listenters) {
-                        if (!i_definitions.Actions[_listenters[key]].hasOwnProperty("Event") 
-                            || !i_definitions.Actions[_listenters[key]].hasOwnProperty("AttachTo") 
-                            || !i_definitions.Actions[_listenters[key]].hasOwnProperty("Selector")
-                            || !i_definitions.Actions[_listenters[key]].hasOwnProperty("Delegate")) {
-        
-                            o_response = false;
-                            break;
-                        }
+                EventConsumer.prototype.When = function (i_eventName) {
+                    m_eventName = i_eventName;
+                    return this;
+                }
+
+                EventConsumer.prototype.On = function (i_selector) {
+                    m_selector = i_selector;
+                    return this;
+                }
+
+                EventConsumer.prototype.Invoke = function (i_invokeIMPL) {
+                    m_invokeIMPL = i_invokeIMPL;
+                    return this;
+                }
+
+                EventConsumer.prototype.Delegate = function (i_controllerName, i_method, i_callbackIMPL) {
+                    var _controller = $pow.Store.Get(i_controllerName),
+                        _usingServicesArr = Object.getOwnPropertyNames(_controller.UsingService),
+                        _services = {};
+
+                    for (var key = 0; key < _usingServicesArr.length; key++) {
+                        _services[_usingServicesArr[key]] = _controller.UsingService[_usingServicesArr[key]].Methods;
+                    }
+
+                    if (document.addEventListener) {
+                        m_elementToAttach.addEventListener(m_eventName, function (e) {
+                            if (e.target === document.querySelector(m_selector)) {
+                                var o_data = (typeof m_invokeIMPL === "function")? m_invokeIMPL(e) : {};
+                                _controller.Methods[i_method].apply(e.target, [e, _services, o_data, i_callbackIMPL]);
+                            }
+                        }, m_bubble);
+                    } else {
+                        m_elementToAttach.attachEvent( 'on' + m_eventName, function( e ){ 
+                            if (e.srcElement === document.querySelector(m_selector)) { 
+                                var o_data = (typeof m_invokeIMPL === "function")? m_invokeIMPL(e) : {};
+                                _controller.Methods[i_method].apply(e.target, [e, _services, o_data, i_callbackIMPL]);
+                            }
+                        });
                     }
                 }
-                return o_response;
+
+                return EventConsumer;
+            })();
+
+            function ViewHandler() { }
+
+            function isValidDefinitions(i_definitions){
+                return (typeof i_definitions != "undefined" 
+                    && i_definitions 
+                    && i_definitions.Identifier)? true : false;
             }
 
-            return ViewsFactoryInstance;
-        })(createView),
-        View = (function(){
-            var m_controller = {};
-        
-            function View(i_definitions){
-                this.m_definitions = i_definitions;
-                bindController(this.m_definitions.Controller);
-                bindActions(getController(this.m_definitions.Controller), this.m_definitions.Actions);
-            }
-
-            View.prototype.ListenTo = function(i_listenerOptions, i_controllerName){
-                var _controller = getController(i_controllerName);
-                bindActions(_controller? _controller : getController(this.m_definitions.Controller), i_listenerOptions);
-            }
-        
-            function bindController(i_controllerName){
-                m_controller[i_controllerName] = $pow.Store.Get(i_controllerName);
-            }
-        
-            function getController(i_controllerName){
-                return m_controller[i_controllerName];
-            }
-        
-            function bindActions(i_controller, i_actionsList){
-                function getCurrObjHelper(i_key){
-                    return i_actionsList[_listentersArr[key]];
+            ViewHandler.prototype.CreateEventConsumer = function (i_definition) {
+                if (typeof i_definition === "string" && i_definition.length){
+                    var _eventConsumer = new EventConsumer();
+                    $pow.Store.Add(i_definition, _eventConsumer);
+                } else if (isValidDefinitions(i_definition)) {
+                    var _eventConsumer = new EventConsumer(i_definition);
+                    $pow.Store.Add(i_definition.Identifier, _eventConsumer);
                 }
-
-                var _listentersArr = Object.getOwnPropertyNames(i_actionsList),
-                    _usingServicesArr = Object.getOwnPropertyNames(i_controller.UsingService),
-                    _services = {};
-                
-                i_actionsList.Controller = i_controller;
-                
-                for (var key = 0; key < _usingServicesArr.length; key++) {
-                    _services[_usingServicesArr[key]] = i_controller.UsingService[_usingServicesArr[key]].Methods;
-                }
-
-                for (var key = 0; key < _listentersArr.length; key++) {
-                    var v_currObj = getCurrObjHelper(key);
-                    if (document.addEventListener) {
-                        v_currObj["AttachTo"].addEventListener(v_currObj["Event"], function( e ){ 
-                            if (e.target === document.querySelector(v_currObj["Selector"])) { 
-                                i_actionsList.Controller.Methods[v_currObj["Delegate"]].apply(e.target, [e, _services, v_currObj["Invoke"]]);
-                            }
-                        }, v_currObj["Bubble"] || false);
-                    } 
-                    // else {
-                    //     document.attachEvent( 'on' + type, function( event ){ 
-                    //         if(event.srcElement === element || event.srcElement.id === element) { 
-                    //             callback.apply(event.target, [event]); 
-                    //         }
-                    //     });
-                    // }
-                }
+                return _eventConsumer;
             }
-        
-            return View;
+
+            return ViewHandler;
         })();
-    
-    function createView(i_definitions){
-        return new View(i_definitions);    
-    }
 
-    function createInstance(){
-        if (!m_instance) m_instance = new ViewsFactoryInstance();
+    function createInstance() {
+        if (!m_instance) m_instance = new ViewHandler();
         return m_instance;
     }
 
     return createInstance();
-})();
+})()
 
-$pow.ServicesFactory = (function(){
+$pow.ServicesFactory = (function () {
     var m_instance,
-        ServicesFactoryInstance = (function(createService){
-            function ServicesFactoryInstance(){}
+        ServicesFactoryInstance = (function (createService) {
+            function ServicesFactoryInstance() { }
 
-            ServicesFactoryInstance.prototype.Create = function(i_definitions){
-                if (isValidDefinitions(i_definitions)){
+            ServicesFactoryInstance.prototype.Create = function (i_definitions) {
+                if (isValidDefinitions(i_definitions)) {
                     var _service = createService(i_definitions);
                     $pow.Store.Add(i_definitions.Identifier, _service);
                     return _service;
                 }
             }
 
-            function isValidDefinitions(i_definitions){
-                return (typeof i_definitions !== "undefined" 
-                        && i_definitions 
-                        && typeof i_definitions.Methods !== "undefined"
-                        && typeof i_definitions.Identifier === "string")? 
-                            true : false;
+            function isValidDefinitions(i_definitions) {
+                return (typeof i_definitions !== "undefined"
+                    && i_definitions
+                    && typeof i_definitions.Methods !== "undefined"
+                    && typeof i_definitions.Identifier === "string") ?
+                    true : false;
             }
 
             return ServicesFactoryInstance;
         })(createService),
-        Service = (function(){
-            function Service(i_definitions){
+        Service = (function () {
+            function Service(i_definitions) {
                 this.Methods = {};
                 this.Identifier = i_definitions.Identifier;
                 this.UsingComponent = bindComponents(i_definitions.UsingComponent);
-                Object.assign(this.Methods, i_definitions.Methods, {"UsingComponent": this.UsingComponent});
+                Object.assign(this.Methods, i_definitions.Methods, { "UsingComponent": this.UsingComponent });
             }
 
-            function bindComponents(i_using){
+            function bindComponents(i_using) {
                 //todo: attach each component as an internal object like -> Controller.http.post
                 var o_using = {}
                 if (i_using) {
@@ -299,19 +285,19 @@ $pow.ServicesFactory = (function(){
                         v_componentInstance = $pow.ComponentsFactory.Create(i_using[key]);
                         if (!v_componentInstance) console.warn("bad component: " + i_using[key]);
                         else o_using[i_using[key]] = v_componentInstance;
-                    } 
-                } 
+                    }
+                }
                 return o_using;
             }
 
             return Service;
         })();
-    
-    function createService(i_definitions){
-        return new Service(i_definitions);    
+
+    function createService(i_definitions) {
+        return new Service(i_definitions);
     }
 
-    function createInstance(){
+    function createInstance() {
         if (!m_instance) m_instance = new ServicesFactoryInstance();
         return m_instance;
     }

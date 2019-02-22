@@ -14,6 +14,6 @@ assets.push('assets/POWLib.js');
 gulp.task('PowBuild', function() {
     return gulp.src(assets)
                 .pipe(concat('POWLib.min.js'))
-                .pipe(uglify())
-                .pipe(gulp.dest('public/js'));
+                //.pipe(uglify())
+                .pipe(gulp.dest('public/js/compiled'));
 });

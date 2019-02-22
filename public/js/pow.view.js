@@ -1,6 +1,6 @@
 var $pow = $pow || {};
 
-$pow.View.CreateEventConsumer("buttonClickConsumer").When("click").On(".test").Invoke(function(e){
+$pow.View.CreateEventConsumer("buttonClickConsumer").When("click").On(".test").InvokeToDelegation(function(e){
     return {
         number: 1
     };

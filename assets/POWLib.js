@@ -176,17 +176,28 @@ $pow.View = (function () {
                     return this;
                 }
 
-                EventConsumer.prototype.On = function (i_selector) {
+                EventConsumer.prototype.On = function (i_selector, i_elementToAttach) {
                     m_selector = i_selector;
+                    if (typeof i_elementToAttach != "undefined" && i_elementToAttach) m_elementToAttach = i_elementToAttach;
                     return this;
                 }
 
-                EventConsumer.prototype.Invoke = function (i_invokeIMPL) {
+                EventConsumer.prototype.InvokeToDelegation = function (i_invokeIMPL) {
                     m_invokeIMPL = i_invokeIMPL;
                     return this;
                 }
-
+                
                 EventConsumer.prototype.Delegate = function (i_controllerName, i_method, i_callbackIMPL) {
+                    // function ready(i_fn) {
+                    //     if (document.readyState != 'loading') i_fn();
+                    //     else if (document.addEventListener) document.addEventListener('DOMContentLoaded', i_fn);
+                    //     else {
+                    //         document.attachEvent('onreadystatechange', function () {
+                    //             if (document.readyState != 'loading') i_fn();
+                    //         });
+                    //     }
+                    // }
+
                     var _controller = $pow.Store.Get(i_controllerName),
                         _usingServicesArr = Object.getOwnPropertyNames(_controller.UsingService),
                         _services = {};

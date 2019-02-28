@@ -22,6 +22,10 @@ $pow.Store = (function () {
                 return m_storage[i_slug] || this.Components.IsExists(i_slug) ? true : false;
             }
 
+            StoreHandler.prototype.GetEventsDictionary = function () {
+                return {};
+            }
+
             function getComponents() {
                 return (function () {
                     var m_componentsInstance,
@@ -155,106 +159,6 @@ $pow.ControllersFactory = (function () {
     return createInstance();
 })();
 
-$pow.View = (function () {
-    var m_instance,
-        ViewHandler = (function () {
-            var EventConsumer = (function () {
-                var m_eventName,m_selector,m_elementToAttach,m_invokeIMPL,m_delegate,m_bubble,m_identifier;
-
-                function EventConsumer(i_definitions) { 
-                    m_eventName = i_definitions.Event? i_definitions.Event : null;
-                    m_selector = i_definitions.Selector? i_definitions.Selector : null;
-                    m_elementToAttach = i_definitions.AttachTo? i_definitions.AttachTo : document;
-                    m_invokeIMPL = i_definitions.Invoke? i_definitions.Invoke : null;
-                    m_delegate = i_definitions.Delegate? i_definitions.Delegate : null;
-                    m_bubble = i_definitions.Bubble? i_definitions.Bubble : false;
-                    m_identifier = i_definitions.Identifier? i_definitions.Identifier : "";
-                }
-
-                EventConsumer.prototype.When = function (i_eventName) {
-                    m_eventName = i_eventName;
-                    return this;
-                }
-
-                EventConsumer.prototype.On = function (i_selector, i_elementToAttach) {
-                    m_selector = i_selector;
-                    if (typeof i_elementToAttach != "undefined" && i_elementToAttach) m_elementToAttach = i_elementToAttach;
-                    return this;
-                }
-
-                EventConsumer.prototype.InvokeToDelegation = function (i_invokeIMPL) {
-                    m_invokeIMPL = i_invokeIMPL;
-                    return this;
-                }
-                
-                EventConsumer.prototype.Delegate = function (i_controllerName, i_method, i_callbackIMPL) {
-                    // function ready(i_fn) {
-                    //     if (document.readyState != 'loading') i_fn();
-                    //     else if (document.addEventListener) document.addEventListener('DOMContentLoaded', i_fn);
-                    //     else {
-                    //         document.attachEvent('onreadystatechange', function () {
-                    //             if (document.readyState != 'loading') i_fn();
-                    //         });
-                    //     }
-                    // }
-
-                    var _controller = $pow.Store.Get(i_controllerName),
-                        _usingServicesArr = Object.getOwnPropertyNames(_controller.UsingService),
-                        _services = {};
-
-                    for (var key = 0; key < _usingServicesArr.length; key++) {
-                        _services[_usingServicesArr[key]] = _controller.UsingService[_usingServicesArr[key]].Methods;
-                    }
-
-                    if (document.addEventListener) {
-                        m_elementToAttach.addEventListener(m_eventName, function (e) {
-                            if (e.target === document.querySelector(m_selector)) {
-                                var o_data = (typeof m_invokeIMPL === "function")? m_invokeIMPL(e) : {};
-                                _controller.Methods[i_method].apply(e.target, [e, _services, o_data, i_callbackIMPL]);
-                            }
-                        }, m_bubble);
-                    } else {
-                        m_elementToAttach.attachEvent( 'on' + m_eventName, function( e ){ 
-                            if (e.srcElement === document.querySelector(m_selector)) { 
-                                var o_data = (typeof m_invokeIMPL === "function")? m_invokeIMPL(e) : {};
-                                _controller.Methods[i_method].apply(e.target, [e, _services, o_data, i_callbackIMPL]);
-                            }
-                        });
-                    }
-                }
-
-                return EventConsumer;
-            })();
-
-            function ViewHandler() { }
-
-            function isValidDefinitions(i_definitions){
-                return (typeof i_definitions != "undefined" 
-                    && i_definitions 
-                    && i_definitions.Identifier)? true : false;
-            }
-
-            ViewHandler.prototype.CreateEventConsumer = function (i_definition) {
-                if (typeof i_definition === "string" && i_definition.length){
-                    var _eventConsumer = new EventConsumer();
-                    $pow.Store.Add(i_definition, _eventConsumer);
-                } else if (isValidDefinitions(i_definition)) {
-                    var _eventConsumer = new EventConsumer(i_definition);
-                    $pow.Store.Add(i_definition.Identifier, _eventConsumer);
-                }
-                return _eventConsumer;
-            }
-
-            return ViewHandler;
-        })();
-
-    function createInstance() {
-        if (!m_instance) m_instance = new ViewHandler();
-        return m_instance;
-    }
-
-    return createInstance();
-})()
 
 $pow.ServicesFactory = (function () {
     var m_instance,
@@ -288,7 +192,6 @@ $pow.ServicesFactory = (function () {
             }
 
             function bindComponents(i_using) {
-                //todo: attach each component as an internal object like -> Controller.http.post
                 var o_using = {}
                 if (i_using) {
                     var v_componentInstance = {};
@@ -310,6 +213,126 @@ $pow.ServicesFactory = (function () {
 
     function createInstance() {
         if (!m_instance) m_instance = new ServicesFactoryInstance();
+        return m_instance;
+    }
+
+    return createInstance();
+})();
+
+$pow.View = (function () {
+    var m_instance,
+        ViewHandler = (function () {
+            var EventConsumer = (function () {
+                var m_eventIMPL,
+                    m_elem,
+                    m_elementToAttach,
+                    m_invokeIMPL,
+                    m_delegate,
+                    m_bubble,
+                    m_identifier,
+                    m_self;
+
+                function EventConsumer(i_definitions = {}) {
+                    m_eventName = i_definitions.Event ? i_definitions.Event : null;
+                    m_selector = i_definitions.Selector ? i_definitions.Selector : null;
+                    m_elementToAttach = i_definitions.AttachTo ? i_definitions.AttachTo : document;
+                    m_invokeIMPL = i_definitions.Invoke ? i_definitions.Invoke : null;
+                    m_delegate = i_definitions.Delegate ? i_definitions.Delegate : null;
+                    m_bubble = i_definitions.Bubble ? i_definitions.Bubble : false;
+                    m_identifier = i_definitions.Identifier ? i_definitions.Identifier : "";
+                    m_self = this;
+                }
+
+                function getSelf() {
+                    return m_self;
+                }
+
+                EventConsumer.prototype.RegisterTo = {
+                    ClickEvent: function () {
+                        m_eventIMPL = function (i_controllerName, i_method, i_callbackIMPL) {
+                            var _controller = $pow.Store.Get(i_controllerName),
+                                _usingServicesArr = Object.getOwnPropertyNames(_controller.UsingService),
+                                _availableServices = {},
+                                _publicControllerActions = {};
+                            
+                            
+                            for (var key = 0; key < _usingServicesArr.length; key++) {
+                                _availableServices[_usingServicesArr[key]] = _controller.UsingService[_usingServicesArr[key]].Methods;
+                            }
+
+                            Object.assign(_publicControllerActions, {"UsingService": _availableServices}, {"Methods": _controller.Methods});
+
+                            if (document.addEventListener) {
+                                m_elementToAttach.addEventListener("click", function (e) {
+                                    if (e.target === document.querySelector(m_selector)) {
+                                        var o_data = (typeof m_invokeIMPL === "function") ? m_invokeIMPL(e) : {};
+                                        _controller.Methods[i_method].apply(_publicControllerActions, [e, i_callbackIMPL]);
+                                    }
+                                }, m_bubble);
+                            } else {
+                                m_elementToAttach.attachEvent("onclick", function (e) {
+                                    if (e.srcElement === document.querySelector(m_selector)) {
+                                        var o_data = (typeof m_invokeIMPL === "function") ? m_invokeIMPL(e) : {};
+                                        _controller.Methods[i_method].apply(e.target, [e, o_data, i_callbackIMPL]);
+                                    }
+                                });
+                            }
+                        }
+
+                        return getSelf();
+                    }
+                }
+
+                EventConsumer.prototype.OnElement = function (i_selector, i_elementToAttach) {
+                    m_selector = i_selector;
+                    if (typeof i_elementToAttach != "undefined" && i_elementToAttach) m_elementToAttach = i_elementToAttach;
+                    return this;
+                }
+
+                EventConsumer.prototype.YieldData = function (i_invokeIMPL) {
+                    m_invokeIMPL = i_invokeIMPL;
+                    return this;
+                }
+
+                EventConsumer.prototype.DelegateTo = function (i_controllerName, i_method, i_callbackIMPL) {
+                    m_eventIMPL(i_controllerName, i_method, i_callbackIMPL);
+                }
+
+                return EventConsumer;
+            })();
+
+            function ViewHandler() { }
+
+            function isValidDefinitions(i_definitions) {
+                return (typeof i_definitions != "undefined"
+                    && i_definitions
+                    && i_definitions.Identifier) ? true : false;
+            }
+
+            ViewHandler.prototype.CreateEventConsumer = function (i_definition) {
+                if (typeof i_definition === "string" && i_definition.length) {
+                    var _eventConsumer = new EventConsumer();
+                    $pow.Store.Add(i_definition, _eventConsumer);
+                } else if (isValidDefinitions(i_definition)) {
+                    var _eventConsumer = new EventConsumer(i_definition);
+                    $pow.Store.Add(i_definition.Identifier, _eventConsumer);
+                }
+                return _eventConsumer;
+            }
+
+            ViewHandler.prototype.WhenDocumentReady = function (i_IMPL) {
+                if (typeof i_IMPL === "function") {
+                    if (document.readyState != 'loading') i_IMPL();
+                    else if (document.addEventListener) document.addEventListener('DOMContentLoaded', i_IMPL);
+                    else document.attachEvent('onreadystatechange', function () { if (document.readyState != 'loading') i_IMPL(); });
+                }
+            }
+
+            return ViewHandler;
+        })();
+
+    function createInstance() {
+        if (!m_instance) m_instance = new ViewHandler();
         return m_instance;
     }
 

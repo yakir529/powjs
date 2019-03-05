@@ -131,7 +131,6 @@ $pow.ControllersFactory = (function () {
             }
 
             function bindServices(i_using) {
-                //todo: attach each component as an internal object like -> Controller.http.post
                 var o_using = {}
                 if (i_using) {
                     var v_serviceInstance = {};

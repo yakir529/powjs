@@ -1,7 +1,7 @@
 var $pow = $pow || {};
 $pow.Components = $pow.Components || {};
 
-$pow.Components.http = (function(){
+$pow.Components.Http = (function(){
     var Caller = (function(){
         function Caller(){ }
 

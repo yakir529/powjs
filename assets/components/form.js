@@ -1,13 +1,13 @@
 var $pow = $pow || {};
 $pow.Components = $pow.Components || {};
 
-$pow.Components.form = (function(){
+$pow.Components.Form = (function(){
     var FormHandler = (function(){
         function FormHandler(){}
 
         FormHandler.prototype.GetFormData = function (i_formElemUniqeSelector, i_dataToAddArr) {
             var _form = document.querySelector(i_formElemUniqeSelector);
-            if (!_form || _form.tagName != "FORM") ConsoleManager.ThrowWarning("Element must be of type FORM");
+            if (!_form || _form.tagName != "FORM") console.warn("Element must be of type FORM");
             else {
                 var _inputs = _form.querySelectorAll("input:not([type='button']), textarea"),
                     _thisFormData = getFormDataObj();
@@ -26,7 +26,7 @@ $pow.Components.form = (function(){
                         }
                     }
                 }
-                
+
                 if (typeof i_dataToAddArr != "undefined" && i_dataToAddArr.length) {
                     for (var k in i_dataToAddArr) {
                         if (typeof i_dataToAddArr[k].key != "undefined" && typeof i_dataToAddArr[k].value != "undefined") {
